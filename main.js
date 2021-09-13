@@ -3,7 +3,7 @@ let h = canvas.height = innerHeight;
 let w = canvas.width = innerWidth;
 let ctx = canvas.getContext('2d');
 
-let chars = ['#', '{', '}', '[', ']', '<', '>', '+', '-', ':', ';', '/', '%', '&', '@','1','0','='];
+let chars = ['#', '{', '}', '[', ']', '<', '>', '+', '-', ':', ';', '/', '%', '&', '@', '1', '0', '='];
 
 const { PI, sin, cos, random, floor } = Math;
 
@@ -55,28 +55,31 @@ class Dot {
 }
 
 class ParticleDot {
-    constructor(x, y, angle, speed, char) {
+    constructor(x, y, char) {
         this.x = x;
         this.y = y;
-        this.angle = angle;
+        this.angle = Math.random() * (Math.PI * 2);
         this.direction = {
             x: cos(this.angle),
             y: sin(this.angle)
         }
-        this.speed = speed;
+        this.speed = 1;
         this.color = 'dodgerBlue';
-        this.radius = 20;
+        this.radius = 10;
         this.char = char;
         this.fromCenter = Math.hypot(x - w / 2, y - h / 2);
-        this.opacity = 0;
+        this.opacity = 1;
+        this.ttl = 1;
+        this.alive = true;
     }
     update() {
         this.x = this.x += this.direction.x * this.speed;
         this.y = this.y += this.direction.y * this.speed;
         this.checkBorderCollision();
         this.angleUpdate();
-        this.checkDistanceFrom(this.x, this.y, w / 2, h / 2);
-        this.updateOpacity();
+        this.ttlUpdate();
+        // this.checkDistanceFrom(this.x, this.y, w / 2, h / 2);
+        // this.updateOpacity();
     }
     draw() {
         // ctx.beginPath();
@@ -89,7 +92,7 @@ class ParticleDot {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
         // ctx.fillStyle = `rgba(30,144,255,${this.opacity})`;
-        ctx.fillStyle = `rgba(60,60,60,${this.opacity})`;
+        ctx.fillStyle = `rgba(60,60,60,${this.ttl})`;
         ctx.font = `${this.radius * 2}px sans-serif`;
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'center';
@@ -114,6 +117,12 @@ class ParticleDot {
             this.angle -= PI * 2
         }
     }
+    ttlUpdate() {
+        this.ttl -= 0.01;
+        if (this.ttl <= 0) {
+            this.alive = false;
+        }
+    }
     checkDistanceFrom(x1, y1, x2, y2) {
         this.fromCenter = Math.hypot(x1 - x2, y1 - y2);
     }
@@ -125,19 +134,38 @@ class ParticleDot {
         }
     }
 }
+function debounce(f, ms) {
 
+    let isCooldown = false;
 
-let dot = new Dot(w / 2, h / 2, 15, 20, random() * (PI * 2), 100);
+    return function () {
+        if (isCooldown) return;
 
-let particlesDots = new Array(100).fill('empty').map(() => {
-    let x = floor(random() * w);
-    let y = floor(random() * h);
-    let angle = random() * (PI * 2);
-    let speed = 1;
-    let char = chars[floor(random() * (chars.length - 1))]
-    return new ParticleDot(x, y, angle, speed, char)
-})
-console.log(particlesDots)
+        f.apply(this, arguments);
+
+        isCooldown = true;
+
+        setTimeout(() => isCooldown = false, ms);
+    };
+
+}
+
+// let dot = new Dot(w / 2, h / 2, 15, 20, random() * (PI * 2), 100);
+
+// let particlesDots = new Array(100).fill('empty').map(() => {
+//     let x = floor(random() * w);
+//     let y = floor(random() * h);
+//     let angle = random() * (PI * 2);
+//     let speed = 1;
+//     let char = chars[floor(random() * (chars.length - 1))]
+//     return new ParticleDot(x, y, angle, speed, char)
+// })
+// console.log(particlesDots)
+let particles = [];
+
+function particlesAliveFilter(arr) {
+    return arr.filter(item => item.alive);
+}
 
 function clearCanvas() {
     ctx.fillStyle = 'rgba(50,50,50,1)';
@@ -145,55 +173,40 @@ function clearCanvas() {
 }
 function animate() {
     clearCanvas();
-    particlesDots.forEach(dot => {
+    particles.forEach(dot => {
         dot.update();
-        dot.draw();
+        if (dot.alive) dot.draw();
     })
+    particles = particlesAliveFilter(particles);
     // dot.draw();
     // dot.update();
     requestAnimationFrame(animate);
 }
 animate();
 
+function addParticle(x, y, char) {
+    particles.push(new ParticleDot(x, y, char));
+}
+let debounceAddParticle = debounce(addParticle, 100);
+
 canvas.addEventListener('mousemove', e => {
     let { clientX, clientY } = e;
     mousePosition.x = clientX;
     mousePosition.y = clientY;
-})
+    debounceAddParticle(clientX, clientY, chars[floor(random() * (chars.length - 1))]);
+    console.log(particles)
+});
 
-document.addEventListener('keydown', e => {
-    if (e.code === 'ArrowUp') {
-        particlesDots.forEach(dot => {
-            dot.speed += 1
-        })
-    }
-    if (e.code === 'ArrowDown') {
-        particlesDots.forEach(dot => {
-            dot.speed -= 1;
-            if (dot.speed < 0) dot.speed = 0;
-        })
-    }
-})
-
-
-class Test {
-    one;
-    two;
-    constructor(name) {
-        this.name = name;
-    }
-    sayHi() {
-        console.log('Hello');
-    }
-}
-
-let test = new Test();
-
-function makeCounter() {
-    let cnt = 0;
-    return function() {
-        return ++cnt;
-    }
-}
-let counter = makeCounter();
-console.dir(counter);
+// document.addEventListener('keydown', e => {
+//     if (e.code === 'ArrowUp') {
+//         particlesDots.forEach(dot => {
+//             dot.speed += 1
+//         })
+//     }
+//     if (e.code === 'ArrowDown') {
+//         particlesDots.forEach(dot => {
+//             dot.speed -= 1;
+//             if (dot.speed < 0) dot.speed = 0;
+//         })
+//     }
+// });
