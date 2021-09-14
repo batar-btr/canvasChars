@@ -65,12 +65,13 @@ class ParticleDot {
         }
         this.speed = 1;
         this.color = 'dodgerBlue';
-        this.radius = 10;
+        this.radius = 6;
         this.char = char;
         this.fromCenter = Math.hypot(x - w / 2, y - h / 2);
         this.opacity = 1;
         this.ttl = 1;
         this.alive = true;
+        this.spinDirection = Math.random() > 0.5;
     }
     update() {
         this.x = this.x += this.direction.x * this.speed;
@@ -92,7 +93,7 @@ class ParticleDot {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
         // ctx.fillStyle = `rgba(30,144,255,${this.opacity})`;
-        ctx.fillStyle = `rgba(60,60,60,${this.ttl})`;
+        ctx.fillStyle = `rgba(120,120,120,${this.ttl})`;
         ctx.font = `${this.radius * 2}px sans-serif`;
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'center';
@@ -112,9 +113,11 @@ class ParticleDot {
         this.y < this.radius ? this.y = this.radius : this.y;
     }
     angleUpdate() {
-        this.angle += 0.05;
+        this.spinDirection ? this.angle += 0.05 : this.angle -= 0.05;
         if (this.angle > PI * 2) {
-            this.angle -= PI * 2
+            this.angle -= PI * 2;
+        } else if (this.angle < 0) {
+            this.angle += PI * 2;
         }
     }
     ttlUpdate() {
